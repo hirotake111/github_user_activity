@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -18,7 +19,7 @@ const (
 	watchEvent                    = "WatchEvent"
 )
 
-type Event struct {
+type Events []struct {
 	// Id   string `json:"id"`
 	Type string `json:"type"`
 	Repo struct {
@@ -31,39 +32,13 @@ type Event struct {
 	// }
 }
 
-func main() {
-	if len(os.Args) == 1 {
-		help()
-		os.Exit(0)
-	}
-	username := os.Args[1]
-	url := fmt.Sprintf(baseUrl, username)
-	// fmt.Printf("url: %s\n", url)
-	client := http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatal(fmt.Errorf("error creating a new HTTP request: %w", err))
-	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
-	// fmt.Println("Requesting user events to GitHub API...")
-	resp, err := client.Do(req)
-	if err != nil {
-		log.Fatal(fmt.Errorf("error fetching data from GitHub API: %w", err))
-	}
-	defer resp.Body.Close()
-	// fmt.Printf("Status Code: %d\n", resp.StatusCode)
-	var events []Event
-	if err := json.NewDecoder(resp.Body).Decode(&events); err != nil {
-		log.Fatal(fmt.Errorf("error decoding HTTP payload: %w", err))
-	}
+func (e Events) display() {
 	commitMap := make(map[string]int)
 	commentMap := make(map[string]int)
 	prCommentMap := make(map[string]int)
 	watchMap := make(map[string]int)
 	createPrMap := make(map[string]int)
-	for _, ev := range events {
-		// fmt.Printf("%+v\n", ev)
+	for _, ev := range e {
 		switch ev.Type {
 		case pushEvent:
 			commitMap[ev.Repo.Name]++
@@ -93,7 +68,44 @@ func main() {
 	for repo, count := range createPrMap {
 		fmt.Printf("- Opened new %d PRs in %s\n", count, repo)
 	}
+}
+
+func main() {
+	if len(os.Args) == 1 {
+		help()
+		os.Exit(0)
+	}
+	username := os.Args[1]
+	url := fmt.Sprintf(baseUrl, username)
+	resp, err := gitHubApi(url)
+	if err != nil {
+		log.Fatal(fmt.Errorf("error fetching data from GitHub API: %w", err))
+	}
+	defer resp.Body.Close()
+	var events Events
+	if err := json.NewDecoder(resp.Body).Decode(&events); err != nil {
+		log.Fatal(fmt.Errorf("error decoding HTTP payload: %w", err))
+	}
+	events.display()
 	os.Exit(0)
+}
+
+func gitHubApi(url string) (*http.Response, error) {
+	client := http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/vnd.github+json")
+	req.Header.Set("X-GitHub-Api-Version", "2022-11-28")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != 200 {
+		return nil, errors.New(resp.Status)
+	}
+	return resp, nil
 }
 
 func help() {
