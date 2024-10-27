@@ -109,5 +109,5 @@ func gitHubApi(url string) (*http.Response, error) {
 }
 
 func help() {
-	fmt.Println("USAGE: githubactivity <username>")
+	fmt.Println("USAGE: github-user-activity <username>")
 }
