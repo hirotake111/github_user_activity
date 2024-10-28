@@ -1,7 +1,0 @@
-# dune init proj gua
-# OCAMLPARAM: unset
-# Shared cache: disabled
-# Shared cache location: /Users/hiro/.cache/dune/db
-# Workspace root:
-# /Users/hiro/Documents/projects/github.com/hirotake111/github_user_activity/gua
-# Auto-detected concurrency: 8
