@@ -1,4 +1,4 @@
 (executable
  (public_name gua)
  (name main)
- (libraries gua lwt cohttp cohttp-lwt-unix))
+ (libraries gua core async lwt cohttp cohttp-lwt-unix yojson))
